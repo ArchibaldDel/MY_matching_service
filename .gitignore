@@ -30,6 +30,9 @@ ENV/
 env/
 .virtualenv/
 
+# uv (uv.lock should be committed for reproducibility)
+# uv.lock
+
 # IDEs
 .vscode/
 .idea/
@@ -108,8 +111,8 @@ docker-compose.override.yml
 
 # Project specific
 data/vectors.db*
-data/*.jsonl.bak
 data/*.jsonl
+data/*.jsonl.bak
 
 # Documentation artifacts
 *.md.backup
