@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  matching-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: matching-service
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount data directory for persistent storage
+      - ./data:/app/data:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Многопоточность для NumPy/PyTorch (ускорение матричных операций)
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+      - OPENBLAS_NUM_THREADS=4
+      - NUMEXPR_NUM_THREADS=4
+      - TORCH_NUM_THREADS=4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 60s
+      retries: 3
+      start_period: 60s
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+
