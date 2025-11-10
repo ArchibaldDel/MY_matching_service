@@ -140,7 +140,7 @@ class SqliteVectorRepository:
                     )
                     for text, vector in zip(
                         texts[i : i + batch_size],
-                        vectors[i : i + batch_size],
+                        vectors[i : i + batch_size], strict=False,
                     )
                     if text.strip()
                 ]

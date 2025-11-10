@@ -96,7 +96,7 @@ class VectorStorage:
                 score=float(score),
                 text=self._texts[int(idx)],
             )
-            for score, idx in zip(scores[0], indices[0])
+            for score, idx in zip(scores[0], indices[0], strict=False)
         ]
         logger.debug("Search found %s results", len(results))
         return results

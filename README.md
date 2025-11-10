@@ -34,39 +34,134 @@ src/matching_service/
 - **Валидация**: На уровне API (Pydantic) и в бизнес-логике
 - **Простота**: Прямое создание компонентов в entrypoint, без DI-контейнеров
 
-## Установка
+## Быстрый старт
+
+### Вариант 1: Локальный запуск
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate              # Windows
-# source .venv/bin/activate         # Linux / macOS
-pip install -e .
+# 1. Клонировать репозиторий
+git clone <repository-url>
+cd matching_service
+
+# 2. Установить uv (если еще не установлен)
+pip install uv
+
+# 3. Установить зависимости
+uv sync
+
+# 4. Запустить сервис
+uv run matching-service
 ```
+
+Сервис будет доступен на `http://127.0.0.1:8000`
+
+### Вариант 2: Запуск через Docker
+
+```bash
+# 1. Клонировать репозиторий
+git clone <repository-url>
+cd matching_service
+
+# 2. Запустить через docker-compose
+docker-compose up --build
+
+# Или в фоновом режиме
+docker-compose up -d --build
+```
+
+Сервис будет доступен на `http://localhost:8000`
+
+**Проверка работы:**
+```bash
+curl http://localhost:8000/
+```
+
+## Установка
+
+### Требования
+- Python 3.11+ (для локального запуска)
+- uv (для управления зависимостями, для локального запуска)
+- Docker и Docker Compose (для запуска через Docker)
+
+### Установка uv
+
+**Через pip (рекомендуется):**
+```bash
+pip install uv
+```
+
+**Альтернативные способы:**
+
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Linux/macOS:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+После установки через pip uv будет доступен сразу. При установке через скрипты перезапустите терминал.
+
+### Установка зависимостей
+
+```bash
+# Установить все зависимости (создаст виртуальное окружение автоматически)
+uv sync
+
+# Активировать виртуальное окружение
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate       # Windows
+
+# Или запускать команды без активации
+uv run matching-service
+```
+
+**Примечание:** Если у вас уже активировано другое виртуальное окружение (например, через PyCharm или вручную), либо:
+- Деактивируйте его: `deactivate` (Linux/macOS) или `deactivate` (Windows)
+- Или используйте флаг `--active`: `uv run --active matching-service`
 
 ## Запуск
 
 ### Локальный запуск
 
 ```bash
-# Установите пакет
-pip install -e .
-
 # Базовый запуск (127.0.0.1:8000)
+uv run matching-service
+
+# Или если окружение активировано
 matching-service
 
 # Кастомный запуск
-matching-service --host 0.0.0.0 --port 8080 --log-level DEBUG
+uv run matching-service --host 0.0.0.0 --port 8080 --log-level DEBUG
 
 # С auto-reload для разработки
-matching-service --reload
+uv run matching-service --reload
 
 # Справка по параметрам
-matching-service --help
+uv run matching-service --help
 ```
 
 Или напрямую через Python:
 ```bash
-python -m matching_service.entrypoints.run_web_server
+uv run python -m matching_service.entrypoints.run_web_server
+```
+
+### Управление зависимостями
+
+```bash
+# Добавить новую зависимость
+uv add package-name
+
+# Удалить зависимость
+uv remove package-name
+
+# Обновить зависимости
+uv sync --upgrade
+
+# Обновить lock файл
+uv lock
 ```
 
 ### Запуск через Docker

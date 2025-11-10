@@ -28,6 +28,9 @@ build-backend = "setuptools.build_meta"
 packages = ["matching_service"]
 package-dir = {"" = "src"}
 
+[dependency-groups]
+dev = []
+
 [tool.ruff]
 line-length = 110
 target-version = "py311"
