@@ -6,12 +6,13 @@ import click
 import uvicorn
 from fastapi import FastAPI
 
+from matching_service.api import setup_exception_handlers
 from matching_service.api.controllers import (
     health_router,
     search_router,
     upsert_router,
 )
-from matching_service.config import Config
+from matching_service.config import APIConfig, Config, DBConfig, MLConfig
 from matching_service.services import TextEmbedder, VectorStorage
 from matching_service.storage.repositories import SqliteVectorRepository
 
@@ -24,16 +25,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    cfg: Config = app.state.config
+    ml_config: MLConfig = app.state.ml_config
     storage: VectorStorage = app.state.storage
 
-    logger.info("=" * 70)
     logger.info(
         "Service starting | Model: %s | Vectors: %s",
-        cfg.model_name,
+        ml_config.model_name,
         f"{storage.count():,}",
     )
-    logger.info("=" * 70)
 
     yield
 
@@ -41,19 +40,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Service shutting down - database connection closed")
 
 
-def create_app(cfg: Config) -> FastAPI:
-    repository = SqliteVectorRepository(db_path=str(cfg.vector_db_path))
+def create_app(
+    db_config: DBConfig,
+    ml_config: MLConfig,
+    api_config: APIConfig,
+) -> FastAPI:
+    repository = SqliteVectorRepository(db_path=str(db_config.vector_db_path))
 
     embedder = TextEmbedder(
-        model_name=cfg.model_name,
-        device=cfg.device,
-        max_text_length=cfg.max_text_length,
-        min_clamp_value=cfg.min_clamp_value,
+        model_name=ml_config.model_name,
+        device=ml_config.device,
+        max_text_length=ml_config.max_text_length,
+        min_clamp_value=ml_config.min_clamp_value,
     )
 
     storage = VectorStorage(
         repository=repository,
-        embedding_batch_size=cfg.embedding_batch_size,
+        embedding_batch_size=ml_config.embedding_batch_size,
         embedder=embedder,
     )
 
@@ -66,8 +69,11 @@ def create_app(cfg: Config) -> FastAPI:
         redoc_url="/redoc",
     )
 
-    app.state.config = cfg
+    app.state.api_config = api_config
+    app.state.ml_config = ml_config
     app.state.storage = storage
+
+    setup_exception_handlers(app)
 
     app.include_router(health_router, tags=["health"])
     app.include_router(search_router, tags=["search"])
@@ -109,12 +115,12 @@ def cli(
     reload: bool,
     log_level: str,
 ) -> None:
-    cfg = Config()
+    config = Config()
 
     if host is None:
-        host = cfg.api_host
+        host = config.api.api_host
     if port is None:
-        port = cfg.api_port
+        port = config.api.api_port
 
     logging.getLogger().setLevel(getattr(logging, log_level.upper()))
 
@@ -122,7 +128,11 @@ def cli(
     if reload:
         click.echo("Auto-reload enabled (development mode)")
 
-    app = create_app(cfg)
+    app = create_app(
+        db_config=config.db,
+        ml_config=config.ml,
+        api_config=config.api,
+    )
 
     uvicorn.run(
         app,

@@ -1,46 +1,31 @@
 import logging
-from functools import wraps
-from typing import TypeVar
-from collections.abc import Callable
-
-from fastapi import HTTPException
-
-from matching_service.utils.exceptions import (
-    DomainError,
-    EmptyStorageError,
-    InvalidTextError,
-)
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 
+def setup_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+        logger.warning("Validation error: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
 
-def _map_exception_to_response(exception: Exception) -> tuple[int, str, str]:
-    if isinstance(exception, EmptyStorageError):
-        return 404, "Empty storage", str(exception)
-    if isinstance(exception, (InvalidTextError, ValueError)):
-        return 400, "Validation error", str(exception)
-    if isinstance(exception, DomainError):
-        return 400, "Domain error", str(exception)
-    if isinstance(exception, RuntimeError):
-        return 500, "Runtime error", "Service unavailable"
-    return 500, "Error", "Internal error"
+    @app.exception_handler(RuntimeError)
+    async def runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
+        logger.error("Runtime error: %s", exc, exc_info=True)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Service unavailable"},
+        )
 
-
-def handle_service_errors(func: Callable[..., T]) -> Callable[..., T]:
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> T:
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            status_code, log_message, detail = _map_exception_to_response(e)
-
-            if status_code >= 500:
-                logger.error("%s: %s", log_message, e, exc_info=True)
-            else:
-                logger.warning("%s: %s", log_message, e)
-
-            raise HTTPException(status_code=status_code, detail=detail)
-
-    return wrapper
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error("Unhandled error: %s", exc, exc_info=True)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal error"},
+        )

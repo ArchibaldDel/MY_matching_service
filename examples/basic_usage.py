@@ -1,7 +1,3 @@
-"""
-Пример использования сервиса напрямую из Python (без FastAPI).
-"""
-
 import logging
 
 from matching_service.config import Config
@@ -14,18 +10,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 def main() -> None:
     config = Config()
 
-    repository = SqliteVectorRepository(db_path=str(config.vector_db_path))
+    repository = SqliteVectorRepository(db_path=str(config.db.vector_db_path))
 
     embedder = TextEmbedder(
-        model_name=config.model_name,
-        device=config.device,
-        max_text_length=config.max_text_length,
-        min_clamp_value=config.min_clamp_value,
+        model_name=config.ml.model_name,
+        device=config.ml.device,
+        max_text_length=config.ml.max_text_length,
+        min_clamp_value=config.ml.min_clamp_value,
     )
 
     storage = VectorStorage(
         repository=repository,
-        embedding_batch_size=config.embedding_batch_size,
+        embedding_batch_size=config.ml.embedding_batch_size,
         embedder=embedder,
     )
 

@@ -6,10 +6,6 @@ import numpy as np
 import numpy.typing as npt
 
 from matching_service.services.search import cosine_topk
-from matching_service.utils.exceptions import (
-    EmptyStorageError,
-    InvalidTextError,
-)
 
 if TYPE_CHECKING:
     from matching_service.services.embedder import TextEmbedder
@@ -57,7 +53,7 @@ class VectorStorage:
 
     def upsert(self, text: str) -> int:
         if not text.strip():
-            raise InvalidTextError("Text cannot be empty")
+            raise ValueError("Text cannot be empty")
         embedder = self._require_embedder()
 
         embedding: npt.NDArray[np.float32] = embedder.encode(
@@ -77,9 +73,9 @@ class VectorStorage:
 
     def search(self, query_text: str, top_k: int) -> list[SearchResultDTO]:
         if not query_text.strip():
-            raise InvalidTextError("Query text cannot be empty")
+            raise ValueError("Query text cannot be empty")
         if self.embeddings is None or self.count() == 0:
-            raise EmptyStorageError("Storage is empty")
+            raise ValueError("Storage is empty")
         embedder = self._require_embedder()
 
         query_embedding: npt.NDArray[np.float32] = embedder.encode(
