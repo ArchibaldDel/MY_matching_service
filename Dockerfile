@@ -64,6 +64,7 @@ USER appuser
 
 # Environment variables
 ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app/src \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME=/app/.cache/huggingface \
@@ -83,5 +84,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # Default command (arguments ignored, use ENV variables instead)
-CMD ["matching-service"]
+CMD ["python", "-m", "matching_service.entrypoints.run_web_server"]
 
