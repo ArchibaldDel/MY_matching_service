@@ -29,30 +29,47 @@ class VectorCache:
             num_vectors = len(ids)
             
             if num_vectors == 0:
-                self._ids = []
-                self._texts = []
-                self._size = 0
-                self._id_to_index = {}
+                self._clear_cache()
                 logger.debug("Cache loaded: 0 vectors (empty)")
                 return
             
-            if vectors.shape[1] != self._vector_dim:
-                raise ValueError(
-                    f"Vector dimension mismatch: expected {self._vector_dim}, got {vectors.shape[1]}"
-                )
-            
-            if num_vectors > self._capacity:
-                new_capacity = max(num_vectors, self._capacity * 2)
-                self._vectors = np.zeros((new_capacity, self._vector_dim), dtype=np.float32)
-                self._capacity = new_capacity
-                logger.debug("Cache expanded to capacity=%s", new_capacity)
-            
-            self._ids = ids.copy()
-            self._texts = texts.copy()
-            self._vectors[:num_vectors] = vectors
-            self._size = num_vectors
-            self._id_to_index = {vector_id: idx for idx, vector_id in enumerate(ids)}
+            self._validate_vector_dimension(vectors)
+            self._ensure_capacity(num_vectors)
+            self._populate_cache(ids, texts, vectors, num_vectors)
             logger.debug("Cache loaded: %s vectors", num_vectors)
+
+    def _clear_cache(self) -> None:
+        self._ids = []
+        self._texts = []
+        self._size = 0
+        self._id_to_index = {}
+
+    def _validate_vector_dimension(self, vectors: npt.NDArray[np.float32]) -> None:
+        if vectors.shape[1] != self._vector_dim:
+            raise ValueError(
+                f"Vector dimension mismatch: expected {self._vector_dim}, got {vectors.shape[1]}. "
+                f"Database was created with a different model. Delete data/vectors.db and restart."
+            )
+
+    def _ensure_capacity(self, required: int) -> None:
+        if required > self._capacity:
+            new_capacity = max(required, self._capacity * 2)
+            self._vectors = np.zeros((new_capacity, self._vector_dim), dtype=np.float32)
+            self._capacity = new_capacity
+            logger.debug("Cache expanded to capacity=%s", new_capacity)
+
+    def _populate_cache(
+        self,
+        ids: list[int],
+        texts: list[str],
+        vectors: npt.NDArray[np.float32],
+        num_vectors: int,
+    ) -> None:
+        self._ids = ids.copy()
+        self._texts = texts.copy()
+        self._vectors[:num_vectors] = vectors
+        self._size = num_vectors
+        self._id_to_index = {vector_id: idx for idx, vector_id in enumerate(ids)}
 
     def add_or_update(
         self, vector_id: int, text: str, vector: npt.NDArray[np.float32]
@@ -88,13 +105,29 @@ class VectorCache:
         self._capacity = new_capacity
         logger.info("Cache expanded to capacity=%s", new_capacity)
 
-    def get_vectors(self) -> npt.NDArray[np.float32]:
+    def search_vectors(
+        self,
+        query_vector: npt.NDArray[np.float32],
+        top_k: int,
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int32]]:
         with self._lock:
             if self._size == 0:
-                return np.array([], dtype=np.float32).reshape(0, self._vector_dim)
-            view = self._vectors[:self._size]
-            view.flags.writeable = False
-            return view
+                empty_scores = np.array([], dtype=np.float32).reshape(1, 0)
+                empty_indices = np.array([], dtype=np.int32).reshape(1, 0)
+                return empty_scores, empty_indices
+            
+            corpus_vectors = self._vectors[:self._size]
+            sims: npt.NDArray[np.float32] = query_vector @ corpus_vectors.T
+            
+            if sims.ndim == 1:
+                sims = sims.reshape(1, -1)
+            
+            actual_k = min(top_k, self._size)
+            idx: npt.NDArray[np.int32] = np.argsort(-sims, axis=1)[:, :actual_k].astype(np.int32)
+            batch_indices: npt.NDArray[np.int32] = np.arange(sims.shape[0], dtype=np.int32)[:, np.newaxis]
+            scores: npt.NDArray[np.float32] = sims[batch_indices, idx]
+            
+            return scores, idx
 
     def get_metadata(self, idx: int) -> tuple[int, str]:
         with self._lock:
@@ -109,12 +142,4 @@ class VectorCache:
     def count(self) -> int:
         with self._lock:
             return self._size
-
-    def clear(self) -> None:
-        with self._lock:
-            self._ids = []
-            self._texts = []
-            self._size = 0
-            self._id_to_index = {}
-            logger.debug("Cache cleared")
 

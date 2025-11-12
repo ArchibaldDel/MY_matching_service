@@ -4,7 +4,6 @@ import numpy.typing as npt
 
 from matching_service.api.schemas import SearchResultItem
 from matching_service.services.embedder import TextEmbedder
-from matching_service.services.search import cosine_topk
 from matching_service.services.vector_cache import VectorCache
 
 logger = logging.getLogger(__name__)
@@ -28,7 +27,8 @@ def search_usecase(
         raise ValueError(f"top_k must be <= {max_top_k}")
 
     if cache.is_empty():
-        raise ValueError("Storage is empty")
+        logger.info("Search | len=%s | storage is empty | found=0", len(text))
+        return []
 
     query_embedding: npt.NDArray = embedder.encode(
         [text],
@@ -36,19 +36,18 @@ def search_usecase(
         show_progress=False,
     )
 
-    corpus_vectors = cache.get_vectors()
-    actual_top_k = min(actual_top_k, cache.count())
+    scores, indices = cache.search_vectors(query_embedding, actual_top_k)
 
-    scores, indices = cosine_topk(query_embedding, corpus_vectors, actual_top_k)
-
-    results = [
-        SearchResultItem(
-            id=cache.get_metadata(int(idx))[0],
-            score_rate=round(float(score), score_decimal_places),
-            text=cache.get_metadata(int(idx))[1],
+    results = []
+    for score, idx in zip(scores[0], indices[0], strict=False):
+        vector_id, vector_text = cache.get_metadata(int(idx))
+        results.append(
+            SearchResultItem(
+                id=vector_id,
+                score_rate=round(float(score), score_decimal_places),
+                text=vector_text,
+            )
         )
-        for score, idx in zip(scores[0], indices[0], strict=False)
-    ]
 
     logger.info(
         "Search | len=%s | top_k=%s | found=%s",

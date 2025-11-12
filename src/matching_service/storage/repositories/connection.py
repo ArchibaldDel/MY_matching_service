@@ -34,8 +34,8 @@ class DatabaseConnection:
                 self._conn.execute(
                     """
                     CREATE TABLE IF NOT EXISTS vectors (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        text TEXT UNIQUE NOT NULL,
+                        id INTEGER PRIMARY KEY,
+                        text TEXT NOT NULL,
                         vector BLOB NOT NULL,
                         dim INTEGER NOT NULL,
                         count INTEGER NOT NULL DEFAULT 1,
@@ -75,16 +75,6 @@ class DatabaseConnection:
                 yield self._conn
             except Exception:
                 raise
-
-    @property
-    def connection(self) -> sqlite3.Connection:
-        if self._conn is None:
-            raise RuntimeError("Database connection is not established")
-        return self._conn
-
-    @property
-    def lock(self) -> threading.RLock:
-        return self._lock
 
     def close(self) -> None:
         with self._lock:

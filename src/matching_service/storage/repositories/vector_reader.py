@@ -15,36 +15,6 @@ class VectorReader:
         self._db = db_connection
         self._serializer = VectorSerializer()
 
-    def get_by_id(self, vector_id: int) -> tuple[str, npt.NDArray[np.float32]] | None:
-        try:
-            with self._db.read_transaction() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT text, vector, dim FROM vectors WHERE id = ?", (vector_id,))
-                row = cursor.fetchone()
-                if row:
-                    text, vector_blob, dim = row
-                    vector = self._serializer.deserialize(vector_blob, dim)
-                    return (text, vector)
-                return None
-        except sqlite3.Error as e:
-            logger.error("Failed to get vector by id: %s", e)
-            raise RuntimeError(f"Database read error: {e}") from e
-
-    def get_by_text(self, text: str) -> tuple[int, npt.NDArray[np.float32]] | None:
-        try:
-            with self._db.read_transaction() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT id, vector, dim FROM vectors WHERE text = ?", (text,))
-                row = cursor.fetchone()
-                if row:
-                    vector_id, vector_blob, dim = row
-                    vector = self._serializer.deserialize(vector_blob, dim)
-                    return (vector_id, vector)
-                return None
-        except sqlite3.Error as e:
-            logger.error("Failed to get vector by text: %s", e)
-            raise RuntimeError(f"Database read error: {e}") from e
-
     def get_all_vectors(self) -> tuple[list[int], list[str], npt.NDArray[np.float32]]:
         try:
             with self._db.read_transaction() as conn:
@@ -66,25 +36,5 @@ class VectorReader:
                 return ids, texts, stacked_vectors
         except sqlite3.Error as e:
             logger.error("Failed to get all vectors: %s", e)
-            raise RuntimeError(f"Database read error: {e}") from e
-
-    def exists(self, text: str) -> bool:
-        try:
-            with self._db.read_transaction() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1 FROM vectors WHERE text = ? LIMIT 1", (text,))
-                return cursor.fetchone() is not None
-        except sqlite3.Error as e:
-            logger.error("Failed to check existence: %s", e)
-            raise RuntimeError(f"Database read error: {e}") from e
-
-    def count(self) -> int:
-        try:
-            with self._db.read_transaction() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM vectors")
-                return cursor.fetchone()[0]
-        except sqlite3.Error as e:
-            logger.error("Failed to count vectors: %s", e)
             raise RuntimeError(f"Database read error: {e}") from e
 

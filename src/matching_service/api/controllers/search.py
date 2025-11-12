@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.get("/search", response_model=list[SearchResultItem])
 def search_similar_products(
-    text: Annotated[str, Query(min_length=1, max_length=2000)],
+    text: Annotated[str, Query(min_length=1, max_length=100000)],
     top_k: Annotated[int | None, Query(ge=1)] = None,
     cache=Depends(get_cache),
     embedder=Depends(get_embedder),

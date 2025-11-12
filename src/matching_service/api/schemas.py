@@ -2,11 +2,17 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class UpsertRequest(BaseModel):
+    id: int = Field(
+        ...,
+        description="Уникальный идентификатор товара",
+        gt=0,
+        examples=[12345],
+    )
     text: str = Field(
         ...,
         description="Текстовая карточка товара",
         min_length=1,
-        max_length=5000,
+        max_length=100000,
         examples=["Диагностический адаптер ELM327 Bluetooth OBD2"],
     )
 
@@ -26,15 +32,8 @@ class UpsertResponse(BaseModel):
 
 class SearchResultItem(BaseModel):
     id: int = Field(..., gt=0)
-    score_rate: float = Field(..., ge=0.0, le=1.0)
+    score_rate: float = Field(..., ge=-1.0, le=1.0)
     text: str = Field(..., min_length=1)
-
-
-class SearchResponse(BaseModel):
-    query: str = Field(..., min_length=1)
-    top_k: int = Field(..., gt=0)
-    count: int = Field(..., ge=0)
-    results: list[SearchResultItem]
 
 
 class HealthResponse(BaseModel):

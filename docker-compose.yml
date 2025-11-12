@@ -30,7 +30,7 @@ services:
       - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-4}
       - NUMEXPR_NUM_THREADS=${NUMEXPR_NUM_THREADS:-4}
       - TORCH_NUM_THREADS=${TORCH_NUM_THREADS:-4}
-    restart: unless-stopped
+    restart: on-failure:3
     # Healthcheck is defined in Dockerfile
     # Resource limits (adjust based on your hardware)
     deploy:
@@ -44,10 +44,15 @@ services:
     # Security options
     security_opt:
       - no-new-privileges:true
-    # Read-only root filesystem (except mounted volumes)
-    read_only: true
+    # Temporary filesystems
     tmpfs:
       - /tmp:noexec,nosuid,size=100m
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
 
 volumes:
   ml-models-cache:

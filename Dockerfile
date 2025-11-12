@@ -22,10 +22,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
 # Replace PyTorch with CPU-only version (saves ~2GB vs CUDA version)
+# Skip on ARM64 (Apple Silicon) to avoid compatibility issues
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --force-reinstall --no-deps \
-    torch==2.5.1+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
+    if [ "$(uname -m)" = "x86_64" ]; then \
+        pip install --force-reinstall --no-deps \
+        torch==2.5.1+cpu \
+        --index-url https://download.pytorch.org/whl/cpu; \
+    else \
+        echo "Skipping CPU-only PyTorch on ARM64 - using default version"; \
+    fi
 
 
 # Stage 2: Runtime
@@ -35,9 +40,11 @@ WORKDIR /app
 
 # Install minimal runtime dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create non-root user for security
 RUN groupadd -r appuser && \
@@ -63,13 +70,18 @@ ENV PATH="/app/.venv/bin:$PATH" \
     TRANSFORMERS_CACHE=/app/.cache/huggingface \
     TORCH_HOME=/app/.cache/torch
 
+# Metadata
+LABEL org.opencontainers.image.title="Matching Service"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.description="Vector-based product matching service"
+
 # Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-# Default command
-CMD ["matching-service", "--host", "0.0.0.0", "--port", "8000"]
+# Default command (arguments ignored, use ENV variables instead)
+CMD ["matching-service"]
 
