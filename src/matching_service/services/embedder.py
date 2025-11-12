@@ -15,13 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class TextEmbedder:
-    """
-    Text embedder using transformer models.
-    
-    Default model: paraphrase-multilingual-MiniLM-L12-v2
-    Embedding dimension: 384
-    """
-    
     def __init__(
         self,
         model_name: str,
@@ -42,7 +35,6 @@ class TextEmbedder:
         self._model: PreTrainedModel = AutoModel.from_pretrained(model_name).to(self._device)
         self._model.eval()
         
-        # Получаем размерность эмбеддингов из модели
         self._embedding_dim: int = self._model.config.hidden_size
         
         logger.info(
@@ -105,5 +97,4 @@ class TextEmbedder:
     
     @property
     def embedding_dim(self) -> int:
-        """Returns the dimension of embeddings produced by this model."""
         return self._embedding_dim

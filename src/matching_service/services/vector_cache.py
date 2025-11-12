@@ -36,7 +36,6 @@ class VectorCache:
                 logger.debug("Cache loaded: 0 vectors (empty)")
                 return
             
-            # Валидация размерности векторов
             if vectors.shape[1] != self._vector_dim:
                 raise ValueError(
                     f"Vector dimension mismatch: expected {self._vector_dim}, got {vectors.shape[1]}"
@@ -58,7 +57,6 @@ class VectorCache:
     def add_or_update(
         self, vector_id: int, text: str, vector: npt.NDArray[np.float32]
     ) -> None:
-        # Валидация размерности вектора
         if len(vector) != self._vector_dim:
             raise ValueError(
                 f"Vector dimension mismatch: expected {self._vector_dim}, got {len(vector)}"
@@ -91,12 +89,11 @@ class VectorCache:
         logger.info("Cache expanded to capacity=%s", new_capacity)
 
     def get_vectors(self) -> npt.NDArray[np.float32]:
-        """Returns read-only view of vectors. DO NOT MODIFY the returned array!"""
         with self._lock:
             if self._size == 0:
                 return np.array([], dtype=np.float32).reshape(0, self._vector_dim)
             view = self._vectors[:self._size]
-            view.flags.writeable = False  # Защита от записи
+            view.flags.writeable = False
             return view
 
     def get_metadata(self, idx: int) -> tuple[int, str]:

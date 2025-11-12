@@ -52,7 +52,6 @@ def create_app(
         min_clamp_value=ml_config.min_clamp_value,
     )
     
-    # Валидация размерности эмбеддингов
     if embedder.embedding_dim != ml_config.vector_dim:
         logger.warning(
             "Vector dimension mismatch: config=%d, model=%d. Using model dimension.",
