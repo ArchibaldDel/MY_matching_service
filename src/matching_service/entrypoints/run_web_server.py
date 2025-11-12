@@ -51,8 +51,17 @@ def create_app(
         max_text_length=ml_config.max_text_length,
         min_clamp_value=ml_config.min_clamp_value,
     )
+    
+    # Валидация размерности эмбеддингов
+    if embedder.embedding_dim != ml_config.vector_dim:
+        logger.warning(
+            "Vector dimension mismatch: config=%d, model=%d. Using model dimension.",
+            ml_config.vector_dim,
+            embedder.embedding_dim,
+        )
+        ml_config.vector_dim = embedder.embedding_dim
 
-    cache = VectorCache()
+    cache = VectorCache(vector_dim=ml_config.vector_dim)
     ids, texts, vectors = repository.get_all_vectors()
     cache.load_all(ids, texts, vectors)
     logger.info("Cache initialized with %s vectors", cache.count())
