@@ -1,0 +1,39 @@
+[project]
+name = "matching-search-service"
+version = "0.1.0"
+description = "Search API for product matching (ClickHouse + Kafka consumer)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110,<0.122",
+    "uvicorn[standard]>=0.24,<0.39",
+    "numpy>=1.24,<3.0",
+    "pydantic>=2.4,<3.0",
+    "pydantic-settings>=2.0,<3.0",
+    "torch>=2.1,<2.10",
+    "transformers>=4.35,<5.0",
+    "tqdm>=4.65,<5.0",
+    "clickhouse-connect>=0.7,<1.0",
+    "aiokafka>=0.10,<0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4,<9.0",
+    "httpx>=0.26,<0.28",
+]
+
+[project.scripts]
+matching-search-service = "search_service.entrypoints.run_web_server:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["search_service"]
+package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
