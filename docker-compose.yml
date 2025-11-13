@@ -3,9 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Enable BuildKit caching
-      cache_from:
-        - type=registry,ref=matching-service:buildcache
     image: matching-service:latest
     container_name: matching-service
     ports:
@@ -19,11 +16,27 @@ services:
       # Python settings
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      # API configuration
+      
+      # API Configuration (API_*)
       - API_HOST=${API_HOST:-0.0.0.0}
       - API_PORT=${API_PORT:-8000}
-      # PyTorch device: "cpu", "cuda", or unset (auto-detect)
-      - TORCH_DEVICE=cpu
+      - API_RELOAD=${API_RELOAD:-false}
+      - API_DEFAULT_TOP_K=${API_DEFAULT_TOP_K:-5}
+      - API_MAX_TOP_K=${API_MAX_TOP_K:-50}
+      
+      # Database Configuration (DB_*)
+      - DB_VECTOR_DB_PATH=${DB_VECTOR_DB_PATH:-data/vectors.db}
+      
+      # ML Model Configuration (ML_*)
+      - ML_MODEL_NAME=${ML_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - ML_DEVICE=${ML_DEVICE:-cpu}
+      - ML_VECTOR_DIM=${ML_VECTOR_DIM:-384}
+      - ML_EMBEDDING_BATCH_SIZE=${ML_EMBEDDING_BATCH_SIZE:-32}
+      - ML_MAX_TEXT_LENGTH=${ML_MAX_TEXT_LENGTH:-512}
+      
+      # Logging Configuration (LOG_*)
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
       # Performance tuning for NumPy/PyTorch on CPU
       - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
       - MKL_NUM_THREADS=${MKL_NUM_THREADS:-4}

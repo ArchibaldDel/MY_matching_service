@@ -42,20 +42,99 @@ docker-compose up
 
 При первом запуске будет скачана ML модель (~500MB). Healthcheck проверяет доступность каждые 30 секунд.
 
-## Переменные окружения
+## Конфигурация
+
+Все параметры имеют разумные значения по умолчанию в коде. Переопределяйте только необходимые через переменные окружения.
+
+### Локальная разработка
+
+Файл `.env` используется **только для секретов** (токены, пароли):
 
 ```bash
-API_HOST=127.0.0.1          # Хост API
-API_PORT=8000               # Порт API
-API_RELOAD=false            # Автоперезагрузка (dev)
-LOG_LEVEL=INFO              # Уровень логирования
-VECTOR_DB_PATH=data/vectors.db  # Путь к БД
-TORCH_DEVICE=cpu            # cpu, cuda, или None
+# .env (только секреты)
+HUGGINGFACE_TOKEN=your_token_here
 ```
 
-Пример:
+Для изменения обычных настроек используйте переменные окружения:
+
 ```bash
-API_HOST=0.0.0.0 API_PORT=9000 python -m matching_service.entrypoints.run_web_server
+API_HOST=0.0.0.0 ML_DEVICE=cuda python -m matching_service.entrypoints.run_web_server
+```
+
+### Production / Kubernetes
+
+В продакшене используйте:
+- **ConfigMap** для конфигурации (API_*, ML_*, LOG_*)
+- **Secrets** для секретных данных
+- Переменные окружения в docker-compose.yml
+
+### API Configuration (`API_*`)
+
+```bash
+API_HOST=127.0.0.1              # API host (default: 127.0.0.1)
+API_PORT=8000                   # API port (default: 8000)
+API_RELOAD=false                # Auto-reload для разработки (default: false)
+API_DEFAULT_TOP_K=5             # Кол-во результатов по умолчанию (default: 5)
+API_MAX_TOP_K=50                # Максимальное кол-во результатов (default: 50)
+API_SCORE_DECIMAL_PLACES=4      # Знаков после запятой в score (default: 4)
+```
+
+### Database Configuration (`DB_*`)
+
+```bash
+DB_VECTOR_DB_PATH=data/vectors.db  # Путь к SQLite БД (default: data/vectors.db)
+```
+
+### ML Model Configuration (`ML_*`)
+
+```bash
+ML_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+ML_DEVICE=                      # cpu, cuda, auto, или пусто для авто (default: None)
+ML_VECTOR_DIM=384               # Размерность вектора (default: 384)
+ML_EMBEDDING_BATCH_SIZE=32      # Batch size для эмбеддингов (default: 32)
+ML_MAX_TEXT_LENGTH=512          # Макс. кол-во токенов (default: 512)
+ML_MIN_CLAMP_VALUE=1e-9         # Min clamp для normalization (default: 1e-9)
+```
+
+### Logging Configuration (`LOG_*`)
+
+```bash
+LOG_LEVEL=INFO                  # DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
+LOG_FORMAT="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+```
+
+### Примеры
+
+**Локальная разработка (с GPU):**
+```bash
+ML_DEVICE=cuda LOG_LEVEL=DEBUG python -m matching_service.entrypoints.run_web_server
+```
+
+**Docker Compose:**
+```bash
+# Переопределение через переменные окружения
+ML_DEVICE=cuda LOG_LEVEL=INFO docker-compose up
+```
+
+**Kubernetes:**
+```yaml
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matching-service-config
+data:
+  API_HOST: "0.0.0.0"
+  ML_DEVICE: "cuda"
+  LOG_LEVEL: "INFO"
+
+# Deployment
+env:
+  - name: API_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: matching-service-config
+        key: API_HOST
 ```
 
 ## API

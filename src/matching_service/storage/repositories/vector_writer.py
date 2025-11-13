@@ -22,7 +22,6 @@ class VectorWriter:
             with self._db.transaction("IMMEDIATE") as conn:
                 cursor = conn.cursor()
                 exists = self._check_exists(cursor, vector_id)
-                
                 if exists:
                     self._update_vector(cursor, vector_id, text, vector, timestamp)
                     logger.debug("Updated vector ID: %s", vector_id)

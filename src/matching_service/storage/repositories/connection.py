@@ -55,7 +55,6 @@ class DatabaseConnection:
     def transaction(self, mode: str = "DEFERRED") -> Generator[sqlite3.Connection, None, None]:
         if self._conn is None:
             raise RuntimeError("Database connection is not established")
-        
         with self._lock:
             self._conn.execute(f"BEGIN {mode}")
             try:
@@ -69,7 +68,6 @@ class DatabaseConnection:
     def read_transaction(self) -> Generator[sqlite3.Connection, None, None]:
         if self._conn is None:
             raise RuntimeError("Database connection is not established")
-        
         with self._lock:
             try:
                 yield self._conn

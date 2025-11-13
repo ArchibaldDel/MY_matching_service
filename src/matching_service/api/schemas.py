@@ -2,19 +2,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class UpsertRequest(BaseModel):
-    id: int = Field(
-        ...,
-        description="Уникальный идентификатор товара",
-        gt=0,
-        examples=[12345],
-    )
-    text: str = Field(
-        ...,
-        description="Текстовая карточка товара",
-        min_length=1,
-        max_length=100000,
-        examples=["Диагностический адаптер ELM327 Bluetooth OBD2"],
-    )
+    id: int = Field(..., gt=0, examples=[12345])
+    text: str = Field(..., min_length=1, max_length=100000)
 
     @field_validator("text")
     @classmethod
