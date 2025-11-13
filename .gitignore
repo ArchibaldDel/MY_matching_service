@@ -1,0 +1,19 @@
+# Bytecode / cache
+__pycache__/
+*.py[cod]
+
+# Environments
+.venv/
+.env
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# Tooling
+.idea/
+.vscode/
+
+# Logs
+*.log
